@@ -17,6 +17,14 @@ type Column = {
   label: string;
 };
 
+const columnColorMap: Record<string, string> = {
+  peer: "text-gray-700",
+  h1_in: "text-emerald-700",
+  h1_out: "text-blue-700",
+  h2_in: "text-green-700",
+  h2_out: "text-cyan-700",
+};
+
 const Peers = () => {
   const { metrics } = useMinerMetrics();
 
@@ -63,7 +71,7 @@ const Peers = () => {
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="px-4 py-2 h-24 text-left text-gray-500 font-normal"
+                  className={`px-4 py-2 h-24 text-left font-semibold ${columnColorMap[col.key] || "text-gray-700"}`}
                 >
                   <div className="flex items-center">
                     <>
@@ -92,10 +100,7 @@ const Peers = () => {
           </thead>
           <tbody>
             {data.map((row, rowIndex) => (
-              <tr
-                key={rowIndex}
-                className="bg-white border border-gray-200 h-18"
-              >
+              <tr key={rowIndex} className="bg-white border border-gray-200 h-18">
                 {columns.map((col) => (
                   <td key={col.key} className="px-4">
                     <div className="flex items-center">
@@ -126,15 +131,17 @@ const Peers = () => {
                           />
                         )}
                       </>
-                      <>
+                      <span
+                        className={`font-medium ${columnColorMap[col.key] || "text-gray-700"}`}
+                      >
                         {
                           //@ts-ignore
                           row[col.key]
                         }
-                      </>
+                      </span>
                       <>
                         {(col.key == "h1_in" || col.key == "h1_out") && (
-                          <span className="ml-1">h/s</span>
+                          <span className="ml-1 text-gray-500">h/s</span>
                         )}
                       </>
                     </div>
@@ -173,28 +180,28 @@ const Peer = ({ data }: { data: TPeer }) => {
       <div className="mt-2 text-xs">
         <div className="flex justify-between mb-1">
           <div className="text-gray-500">Hash 1 In</div>
-          <div className="flex items-center">
+          <div className="flex items-center text-emerald-700 font-medium">
             <img src={arrow_in_logo} alt="arrow_in" className="h-4 mr-2" />{" "}
             {data.h1_in} h/s
           </div>
         </div>
         <div className="flex justify-between mb-1">
           <div className="text-gray-500">Hash 1 Out</div>
-          <div className="flex items-center">
+          <div className="flex items-center text-blue-700 font-medium">
             <img src={arrow_out_logo} alt="arrow_out" className="h-4 mr-2" />{" "}
             {data.h1_out} h/s
           </div>
         </div>
         <div className="flex justify-between mb-1">
           <div className="text-gray-500">Hash 2 In</div>
-          <div className="flex items-center">
+          <div className="flex items-center text-green-700 font-medium">
             <img src={arrow_in_logo} alt="arrow_in" className="h-4 mr-2" />{" "}
             {data.h2_in}
           </div>
         </div>
         <div className="flex justify-between mb-1">
           <div className="text-gray-500">Hash 2 Out</div>
-          <div className="flex items-center">
+          <div className="flex items-center text-cyan-700 font-medium">
             <img src={arrow_out_logo} alt="arrow_out" className="h-4 mr-2" />{" "}
             {data.h2_out}
           </div>

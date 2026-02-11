@@ -1,18 +1,14 @@
 import { PrometheusMetrics } from "@/types";
 import { ONE_TERABYTE } from "@/utils";
-import { FC } from "react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { FC, useState } from "react";
 import MinerPerformance from "../charts/MinerPerformance";
+import Button from "../ui/Button";
 
 const Partition: FC<{
   metrics: PrometheusMetrics;
   performanceRates: Array<{ [key: string]: string }>;
 }> = ({ metrics, performanceRates }) => {
+  const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
   const MODULE_MAX_SIZE = 3.6 * ONE_TERABYTE;
   const data_size = Number(Number(metrics.value || 0) / ONE_TERABYTE).toFixed(
     2,
@@ -37,93 +33,159 @@ const Partition: FC<{
     ideal_hash_rate_num === 0
       ? "0.00"
       : ((hash_rate_num / ideal_hash_rate_num) * 100).toFixed(2);
+  const dataSizePercentValue = Math.min(
+    100,
+    Math.max(0, Number(data_size_percentage)),
+  );
+  const readPercentValue = Math.min(100, Math.max(0, Number(read_percentage)));
+  const hashPercentValue = Math.min(100, Math.max(0, Number(hash_percentage)));
+  const getProgressColorClass = (value: number) => {
+    if (value >= 85) return "bg-emerald-500";
+    if (value >= 60) return "bg-amber-400";
+    return "bg-rose-500";
+  };
 
   return (
-    <Accordion type="single" collapsible>
-      <AccordionItem value="item-1">
-        <div className="bg-white border border-gray-100 w-full p-3 sm:p-5 md:p-6 rounded-xl mb-6 shadow">
-          <div className="flex justify-between mb-4">
-            <div className="text-lg md:text-xl font-normal text-gray-700">
-              Partition{" "}
-              <span className="font-semibold text-black">
-                #{metrics.labels.partition_number}
+    <>
+      <section className="w-full mb-6 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 md:p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-gray-500">
+              Partition
+            </p>
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+              #{metrics.labels.partition_number}
+            </h3>
+          </div>
+          <Button
+            onClick={() => setIsPerformanceModalOpen(true)}
+            className="h-8 px-3 sm:h-9 sm:px-4 text-xs sm:text-sm font-medium bg-black text-white hover:bg-gray-900"
+          >
+            View Performance
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+            <p className="text-xs uppercase tracking-wide text-gray-500">
+              Data Size
+            </p>
+            <p className="mt-1 text-xl font-semibold text-gray-900">
+              {data_size} TiB
+            </p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs uppercase tracking-wide text-gray-500">
+                % of Max
+              </p>
+              <p className="text-sm font-semibold text-gray-900">
+                {data_size_percentage}%
+              </p>
+            </div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+              <div
+                className={`h-full rounded-full ${getProgressColorClass(
+                  dataSizePercentValue,
+                )}`}
+                style={{ width: `${dataSizePercentValue}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h4 className="text-sm sm:text-base font-semibold text-gray-900">
+                Read Information
+              </h4>
+              <span className="text-xs font-medium text-gray-500">
+                {read_percentage}%
               </span>
             </div>
-            <AccordionTrigger />
-          </div>
-          <div className="bg-gray-50 rounded-xl p-2 md:p-6 flex flex-col md:flex-row gap-10 justify-between text-gray-700 font-normal">
-            <div className="flex gap-14 text-base md:text-xl">
-              <div className="flex flex-col gap-1 md:gap-3">
-                <div>Data Size</div>
-                <div className="font-semibold lg:text-2xl">{data_size} TiB</div>
+            <div className="space-y-1 text-gray-600">
+              <div className="flex items-center justify-between gap-3">
+                <span>Current</span>
+                <span className="font-medium text-gray-900">
+                  {read_rate} MiB/s
+                </span>
               </div>
-              <div className="flex flex-col gap-1 md:gap-3">
-                <div>% of Max</div>
-                <div className="font-semibold lg:text-2xl">
-                  {data_size_percentage} %
-                </div>
+              <div className="flex items-center justify-between gap-3">
+                <span>Ideal</span>
+                <span className="font-medium text-gray-900">
+                  {ideal_read_rate} MiB/s
+                </span>
               </div>
             </div>
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+              <div
+                className={`h-full rounded-full ${getProgressColorClass(
+                  readPercentValue,
+                )}`}
+                style={{ width: `${readPercentValue}%` }}
+              />
+            </div>
+          </div>
 
-            <div className="flex gap-2 md:gap-20 text-sm sm:min-w-[400px]">
-              <div className="flex-1">
-                <div className="font-medium text-black mb-2 text-base md:text-lg">
-                  Read Information
-                </div>
-                <div className="flex flex-col gap-[2px]">
-                  <div>
-                    Current :{" "}
-                    <span className="text-black font-medium">
-                      {read_rate} MiB/s
-                    </span>{" "}
-                  </div>
-                  <div>
-                    Ideal :{" "}
-                    <span className="text-black font-medium">
-                      {ideal_read_rate} MiB/s
-                    </span>
-                  </div>
-                  <div>
-                    % of Ideal :{" "}
-                    <span className="text-black font-medium">
-                      {read_percentage} %
-                    </span>
-                  </div>
-                </div>
+          <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h4 className="text-sm sm:text-base font-semibold text-gray-900">
+                Hash Information
+              </h4>
+              <span className="text-xs font-medium text-gray-500">
+                {hash_percentage}%
+              </span>
+            </div>
+            <div className="space-y-1 text-gray-600">
+              <div className="flex items-center justify-between gap-3">
+                <span>Current</span>
+                <span className="font-medium text-gray-900">{hash_rate} h/s</span>
               </div>
-              <div className="flex-1">
-                <div className="font-medium text-black mb-2 text-base md:text-lg">
-                  Hash Information
-                </div>
-                <div className="flex flex-col gap-[2px]">
-                  <div>
-                    Current :{" "}
-                    <span className="text-black font-medium">
-                      {hash_rate} h/s
-                    </span>{" "}
-                  </div>
-                  <div>
-                    Ideal :{" "}
-                    <span className="text-black font-medium">
-                      {ideal_hash_rate} h/s
-                    </span>
-                  </div>
-                  <div>
-                    % of Ideal :{" "}
-                    <span className="text-black font-medium">
-                      {hash_percentage} %
-                    </span>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between gap-3">
+                <span>Ideal</span>
+                <span className="font-medium text-gray-900">
+                  {ideal_hash_rate} h/s
+                </span>
               </div>
             </div>
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+              <div
+                className={`h-full rounded-full ${getProgressColorClass(
+                  hashPercentValue,
+                )}`}
+                style={{ width: `${hashPercentValue}%` }}
+              />
+            </div>
           </div>
-          <AccordionContent className="mt-10">
-            <MinerPerformance chartData={performanceRates} />
-          </AccordionContent>
         </div>
-      </AccordionItem>
-    </Accordion>
+      </section>
+
+      {isPerformanceModalOpen && (
+        <div
+          className="fixed inset-0 w-full flex items-center justify-center overflow-y-auto bg-black/60 z-50 p-2 md:p-6"
+          onClick={() => setIsPerformanceModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-6xl max-h-[92vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-3 sm:p-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm sm:text-base font-semibold text-gray-800">
+                Partition #{metrics.labels.partition_number} Performance
+              </div>
+              <Button
+                onClick={() => setIsPerformanceModalOpen(false)}
+                className="h-8 px-3 text-xs sm:text-sm border-gray-300 text-gray-700 bg-white hover:bg-gray-100 font-medium"
+              >
+                Close
+              </Button>
+            </div>
+            <MinerPerformance chartData={performanceRates} />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
