@@ -8,28 +8,45 @@ import { ONE_TERABYTE } from "@/utils";
 //@ts-ignore
 import parsePrometheusTextFormat from "parse-prometheus-text-format";
 
-const minerRatesOverTimeStore: MinerRate = {};
+const FETCH_TIMEOUT_MS = 480000;
+const FETCH_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 1000;
+const MAX_HISTORY_POINTS_PER_PARTITION = 240;
+
+const minerRatesOverTimeStoreBySource: Record<string, MinerRate> = {};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const toFiniteNumber = (value: unknown): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 const fetchRawMinerMetrics = async (url: string): Promise<string> => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 480000);
-  const fetchAttempts = 3;
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let lastError: unknown = null;
 
   try {
-    for (let attempt = 1; attempt <= fetchAttempts; attempt++) {
+    for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt++) {
       try {
         const res = await fetch(url, { signal: controller.signal });
         if (!res.ok) throw new Error("Failed to fetch metrics");
         return await res.text();
       } catch (err) {
-        if (attempt === fetchAttempts)
-          throw new Error("Error fetching miner's metrics");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        lastError = err;
+        if (attempt === FETCH_ATTEMPTS) break;
+        await sleep(RETRY_DELAY_MS);
       }
     }
   } finally {
     clearTimeout(timeoutId);
   }
+
+  if (lastError instanceof Error) {
+    throw new Error(`Error fetching miner's metrics: ${lastError.message}`);
+  }
+
   throw new Error("Unexpected error fetching metrics");
 };
 
@@ -39,57 +56,59 @@ const extractMetricData = (
 ): PrometheusMetricParser | undefined =>
   data.find((item) => item.name === metricName);
 
-const getMiningRateData = (data: PrometheusMetricParser[]) => {
-  const miningRateData = data.find(
-    (item: PrometheusMetricParser) => item.name === "mining_rate",
-  );
+const getMiningRateData = (miningRateData?: PrometheusMetricParser) => {
+  const groupedMiningRateData: Record<string, Record<string, string>> = {};
 
-  const groupedMiningRateData = {} as {
-    [key: string]: { [key: string]: string };
-  };
+  miningRateData?.metrics.forEach((item) => {
+    const partition = item.labels.partition;
+    const type = item.labels.type;
+    if (!partition || partition === "total" || !type) return;
+    groupedMiningRateData[partition] ??= {};
+    groupedMiningRateData[partition][type] = item.value;
+  });
 
-  if (miningRateData) {
-    miningRateData.metrics.forEach((item) => {
-      let partition = item.labels.partition;
-      if (partition !== "total") {
-        groupedMiningRateData[partition] =
-          groupedMiningRateData[partition] || {};
-        groupedMiningRateData[partition][item.labels.type] = item.value;
-      }
-    });
-  }
   return groupedMiningRateData;
 };
 
-const getMiningRateDataOverTime = (data: PrometheusMetricParser[]) => {
-  const miningRateData = extractMetricData(data, "mining_rate");
+const getMiningRateDataOverTime = (
+  miningRateData: PrometheusMetricParser | undefined,
+  sourceKey: string,
+) => {
+  const sourceStore = (minerRatesOverTimeStoreBySource[sourceKey] ??= {});
+  const currentTimestamp = new Date().toISOString().slice(11, 16);
 
   miningRateData?.metrics.forEach(({ labels, value }) => {
-    if (labels.partition !== "total") {
-      minerRatesOverTimeStore[labels.partition] ??= [];
+    const partition = labels.partition;
+    const type = labels.type;
 
-      // Get the current time in HH:mm format (UTC)
-      const currentTimestamp = new Date().toISOString().slice(11, 16);
+    if (!partition || partition === "total" || !type) return;
 
-      // Find the last entry in the partition array
-      //@ts-ignore
-      const lastEntry = minerRatesOverTimeStore[labels.partition].at(-1);
+    sourceStore[partition] ??= [];
+    const partitionHistory = sourceStore[partition];
+    const lastEntry = partitionHistory.at(-1);
+    const formattedValue = toFiniteNumber(value).toFixed(3);
 
-      if (lastEntry && lastEntry.timestamp === currentTimestamp) {
-        // If last entry exists and has the same timestamp, add the value to it
-        lastEntry[labels.type] = Number(value).toFixed(3);
-      } else {
-        // Otherwise, create a new entry with the timestamp and value
-        minerRatesOverTimeStore[labels.partition].push({
-          timestamp: currentTimestamp,
-          [labels.type]: Number(value).toFixed(),
-        });
-      }
+    if (lastEntry?.timestamp === currentTimestamp) {
+      lastEntry[type] = formattedValue;
+      return;
+    }
+
+    partitionHistory.push({
+      timestamp: currentTimestamp,
+      [type]: formattedValue,
+    });
+
+    if (partitionHistory.length > MAX_HISTORY_POINTS_PER_PARTITION) {
+      partitionHistory.splice(
+        0,
+        partitionHistory.length - MAX_HISTORY_POINTS_PER_PARTITION,
+      );
     }
   });
 
-  return minerRatesOverTimeStore;
+  return sourceStore;
 };
+
 const getCoordinatedMiningData = (data: PrometheusMetricParser[]) => {
   const resultH1 = extractMetricData(data, "cm_h1_rate");
   const resultH2 = extractMetricData(data, "cm_h2_count");
@@ -101,15 +120,18 @@ const getCoordinatedMiningData = (data: PrometheusMetricParser[]) => {
 
   [resultH1, resultH2].forEach((result, index) => {
     result?.metrics.forEach(({ labels, value }) => {
-      if (labels.peer !== "total") {
-        coordinatedMiningData[labels.peer] ??= {
-          h1: { from: "0", to: "0" },
-          h2: { from: "0", to: "0" },
-        };
-        const key = index === 0 ? "h1" : "h2";
-        //@ts-ignore
-        coordinatedMiningData[labels.peer][key][labels.direction] = value;
-      }
+      const peer = labels.peer;
+      const direction = labels.direction;
+      if (!peer || peer === "total") return;
+      if (direction !== "from" && direction !== "to") return;
+
+      coordinatedMiningData[peer] ??= {
+        h1: { from: "0", to: "0" },
+        h2: { from: "0", to: "0" },
+      };
+
+      const key = index === 0 ? "h1" : "h2";
+      coordinatedMiningData[peer][key][direction] = value;
     });
   });
 
@@ -118,9 +140,11 @@ const getCoordinatedMiningData = (data: PrometheusMetricParser[]) => {
 
 export const fetchMetrics = async (url: string): Promise<MetricsState> => {
   const data = await fetchRawMinerMetrics(url);
-  const parsedData = parsePrometheusTextFormat(data) || [];
-  const minerRates = getMiningRateData(parsedData);
-  const minerRatesOverTime = getMiningRateDataOverTime(parsedData);
+  const rawParsedData = parsePrometheusTextFormat(data);
+  const parsedData = Array.isArray(rawParsedData) ? rawParsedData : [];
+  const miningRateData = extractMetricData(parsedData, "mining_rate");
+  const minerRates = getMiningRateData(miningRateData);
+  const minerRatesOverTime = getMiningRateDataOverTime(miningRateData, url);
   const coordinatedMiningData = getCoordinatedMiningData(parsedData);
 
   let totalStorageSize = 0,
@@ -137,33 +161,39 @@ export const fetchMetrics = async (url: string): Promise<MetricsState> => {
 
   dataByPacking?.metrics.forEach((item) => {
     if (item.labels.packing !== "unpacked") {
-      Object.assign(item.labels, minerRates[item.labels.partition_number]);
-      minerMetrics.push(item);
-      totalStorageSize += Number(item.value);
+      const mergedLabels = {
+        ...item.labels,
+        ...(minerRates[item.labels.partition_number] || {}),
+      };
+      minerMetrics.push({
+        ...item,
+        labels: mergedLabels,
+      });
+      totalStorageSize += toFiniteNumber(item.value);
     }
   });
 
   const weaveSizeMetric = extractMetricData(parsedData, "weave_size");
-  const weaveSize = Number(weaveSizeMetric?.metrics[0]?.value || 0);
+  const weaveSize = toFiniteNumber(weaveSizeMetric?.metrics[0]?.value);
 
   const minerMetricsWithNoDuplicates = Object.values(
     minerMetrics.reduce<Record<string, PrometheusMetrics>>((acc, curr) => {
       const partitionNumber = curr.labels.partition_number;
       acc[partitionNumber] ??= { ...curr, value: "0" };
       acc[partitionNumber].value =
-        `${Number(acc[partitionNumber].value) + Number(curr.value)}`;
+        `${toFiniteNumber(acc[partitionNumber].value) + toFiniteNumber(curr.value)}`;
       return acc;
     }, {}),
   ).sort(
     (a, b) =>
-      parseInt(a.labels.partition_number) - parseInt(b.labels.partition_number),
+      Number(a.labels.partition_number) - Number(b.labels.partition_number),
   );
 
   Object.entries(minerRates).forEach(([, rates]) => {
-    totalReadRate += parseFloat(rates.read || "0");
-    totalIdealReadRate += parseFloat(rates.ideal_read || "0");
-    totalHashRate += parseFloat(rates.hash || "0");
-    totalIdealHashRate += parseFloat(rates.ideal_hash || "0");
+    totalReadRate += toFiniteNumber(rates.read);
+    totalIdealReadRate += toFiniteNumber(rates.ideal_read);
+    totalHashRate += toFiniteNumber(rates.hash);
+    totalIdealHashRate += toFiniteNumber(rates.ideal_hash);
   });
 
   return {

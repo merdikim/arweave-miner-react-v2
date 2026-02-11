@@ -1,9 +1,9 @@
 import { fetchMetrics } from "@/lib/fetchMetrics";
 import { useQuery } from "@tanstack/react-query";
-import useStoredMinerInfo from "./useStoredMinerInfo";
+import useMinersStore from "./useMinersStore";
 
 const useMinerMetrics = () => {
-  const { storedMinerInfo } = useStoredMinerInfo();
+  const {activeMiner} = useMinersStore()
 
   const {
     isLoading,
@@ -11,7 +11,7 @@ const useMinerMetrics = () => {
     data: metrics,
     refetch,
   } = useQuery({
-    queryKey: ["fetch netrics", storedMinerInfo],
+    queryKey: ["fetch metrics", activeMiner],
     queryFn: async () => {
       try {
         const {
@@ -26,7 +26,7 @@ const useMinerMetrics = () => {
           minerMetrics,
           coordinatedMiningData,
         } = await fetchMetrics(
-          `${storedMinerInfo?.protocol}://${storedMinerInfo?.hostname}:${storedMinerInfo?.port}/metrics`,
+          `${activeMiner?.protocol}://${activeMiner?.hostname}:${activeMiner?.port}/metrics`,
         );
 
         return {
