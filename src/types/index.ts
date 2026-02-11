@@ -1,36 +1,36 @@
 export type PrometheusMetrics = {
-    value: string;
-    labels: Record<string, string>;
-    buckets: Record<string, string>;
-  };
-  
-  export type PrometheusMetricParser = {
-    name: string;
-    help: string;
-    type: string;
-    metrics: PrometheusMetrics[];
-  };
-  
-  export type MinerInfo = {
-    hostname: string;
-    protocol: string;
-    port: string;
-  };
+  value: string;
+  labels: Record<string, string>;
+  buckets: Record<string, string>;
+};
 
-  export type MinerRate = Record<string, Array<Record<string, string>>>
-  
-  export type TotalMetrics = {
-    totalStorageSize: string;
-    totalReadRate: string;
-    totalIdealReadRate: string;
-    totalIdealHashRate: string;
-    totalHashRate: string;
-  };
-  
-  export type MetricsState = TotalMetrics & {
-    minerRates: { [key: string]: { [key: string]: string; } };
-    minerRatesOverTime: MinerRate;
-    weaveSize: number | null;
-    minerMetrics: PrometheusMetrics[] | undefined;
-    coordinatedMiningData: { [key: string]: { [key: string]: any } };
-  };
+export type PrometheusMetricParser = {
+  name: string;
+  help: string;
+  type: string;
+  metrics: PrometheusMetrics[];
+};
+
+export type MinerInfo = {
+  hostname: string;
+  protocol: string;
+  port: string;
+};
+
+export type MinerRate = Record<string, Array<Record<string, string>>>;
+
+export type TotalMetrics = {
+  totalStorageSize: string;
+  totalReadRate: string;
+  totalIdealReadRate: string;
+  totalIdealHashRate: string;
+  totalHashRate: string;
+};
+
+export type MetricsState = TotalMetrics & {
+  minerRates: { [key: string]: { [key: string]: string } };
+  minerRatesOverTime: MinerRate;
+  weaveSize: number | null;
+  minerMetrics: PrometheusMetrics[] | undefined;
+  coordinatedMiningData: { [key: string]: { [key: string]: any } };
+};

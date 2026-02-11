@@ -1,10 +1,6 @@
-import { LineChart, Line, XAxis } from "recharts"
+import { LineChart, Line, XAxis } from "recharts";
 
-import {
-  Card,
-  CardContent,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import {
   ChartConfig,
   ChartContainer,
@@ -12,8 +8,8 @@ import {
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-} from "@/components/ui/chart"
-import { FC } from "react"
+} from "@/components/ui/chart";
+import { FC } from "react";
 
 const read_chartConfig = {
   read: {
@@ -24,7 +20,7 @@ const read_chartConfig = {
     label: "Ideal Read",
     color: "hsl(var(--chart-2))",
   },
-} satisfies ChartConfig
+} satisfies ChartConfig;
 
 const hash_chartConfig = {
   hash: {
@@ -35,21 +31,22 @@ const hash_chartConfig = {
     label: "Ideal Hash",
     color: "hsl(var(--chart-4))",
   },
-} satisfies ChartConfig
+} satisfies ChartConfig;
 
-const MinerPerformance:FC<{chartData:Array<{[key: string]: string;}>}> = ({chartData}) => {
-  
+const MinerPerformance: FC<{ chartData: Array<{ [key: string]: string }> }> = ({
+  chartData,
+}) => {
   const data = [...chartData];
 
   return (
     <Card>
       <CardContent>
         <CardTitle className="text-center">Read Rates</CardTitle>
-        <ChartContainer config={read_chartConfig} className="h-[35vh] md:h-[30vh] 2xl:h-[40vh] w-full">
-          <LineChart
-            accessibilityLayer
-            data={data}
-          >
+        <ChartContainer
+          config={read_chartConfig}
+          className="h-[35vh] md:h-[30vh] 2xl:h-[40vh] w-full"
+        >
+          <LineChart accessibilityLayer data={data}>
             <XAxis
               dataKey="timestamp"
               tickLine={false}
@@ -60,11 +57,7 @@ const MinerPerformance:FC<{chartData:Array<{[key: string]: string;}>}> = ({chart
               cursor={false}
               content={<ChartTooltipContent indicator="dot" />}
             />
-            <Line
-              dataKey="read"
-              type="natural"
-              stroke="var(--color-read)"
-            />
+            <Line dataKey="read" type="natural" stroke="var(--color-read)" />
             <Line
               dataKey="ideal_read"
               type="natural"
@@ -73,15 +66,15 @@ const MinerPerformance:FC<{chartData:Array<{[key: string]: string;}>}> = ({chart
             <ChartLegend content={<ChartLegendContent />} />
           </LineChart>
         </ChartContainer>
-        </CardContent>
+      </CardContent>
 
-        <CardContent className=" mt-20">
+      <CardContent className=" mt-20">
         <CardTitle className="text-center">Hash Rates</CardTitle>
-        <ChartContainer config={hash_chartConfig} className="h-[35vh] md:h-[30vh] 2xl:h-[40vh] w-full">
-          <LineChart
-            accessibilityLayer
-            data={data}
-          >
+        <ChartContainer
+          config={hash_chartConfig}
+          className="h-[35vh] md:h-[30vh] 2xl:h-[40vh] w-full"
+        >
+          <LineChart accessibilityLayer data={data}>
             <XAxis
               dataKey="timestamp"
               tickLine={false}
@@ -92,11 +85,7 @@ const MinerPerformance:FC<{chartData:Array<{[key: string]: string;}>}> = ({chart
               cursor={false}
               content={<ChartTooltipContent indicator="dot" />}
             />
-            <Line
-              dataKey="hash"
-              type="natural"
-              stroke="var(--color-hash)"
-            />
+            <Line dataKey="hash" type="natural" stroke="var(--color-hash)" />
             <Line
               dataKey="ideal_hash"
               type="natural"
@@ -107,7 +96,7 @@ const MinerPerformance:FC<{chartData:Array<{[key: string]: string;}>}> = ({chart
         </ChartContainer>
       </CardContent>
     </Card>
-  )
-}
+  );
+};
 
-export default MinerPerformance
+export default MinerPerformance;
