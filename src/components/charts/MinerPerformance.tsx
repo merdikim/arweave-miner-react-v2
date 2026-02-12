@@ -86,6 +86,10 @@ const MinerPerformance: FC<{ chartData: Array<{ [key: string]: string }> }> = ({
   }));
   const readStats = getSeriesStats(data, "read", "ideal_read");
   const hashStats = getSeriesStats(data, "hash", "ideal_hash");
+  const readAxisMax =
+    readStats.peak > 0 || readStats.ideal > 0
+      ? Math.ceil(Math.max(readStats.peak, readStats.ideal) * 1.1)
+      : 1;
   const hashAxisMax =
     hashStats.peak > 0 || hashStats.ideal > 0
       ? Math.ceil(Math.max(hashStats.peak, hashStats.ideal) * 1.1)
@@ -168,7 +172,12 @@ const MinerPerformance: FC<{ chartData: Array<{ [key: string]: string }> }> = ({
                 axisLine={false}
                 tickMargin={8}
               />
-              <YAxis tickLine={false} axisLine={false} width={56} />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                width={56}
+                domain={[0, readAxisMax]}
+              />
               <ChartTooltip
                 cursor={false}
                 content={<ChartTooltipContent indicator="dot" />}
