@@ -1,4 +1,5 @@
 import {
+  MemoryUsage,
   MetricsState,
   MinerRate,
   PrometheusMetricParser,
@@ -147,6 +148,20 @@ export const fetchMetrics = async (url: string): Promise<MetricsState> => {
   const minerRatesOverTime = getMiningRateDataOverTime(miningRateData, url);
   const coordinatedMiningData = getCoordinatedMiningData(parsedData);
 
+  const totalCowboyRequests = extractMetricData(parsedData, 'cowboy_requests_total');
+
+  const ar_wallets = extractMetricData(parsedData, 'arweave_ar_wallets_bytes_total');
+  const ar_node_workers = extractMetricData(parsedData, 'arweave_ar_node_worker_bytes_total');  
+  const ar_data_discovery = extractMetricData(parsedData, 'arweave_ar_data_discovery_bytes_total');
+  const ar_header_sync = extractMetricData(parsedData, 'arweave_ar_header_sync_bytes_total');
+
+  const processMemory:MemoryUsage[] = [
+    { name: "Wallets", bytes: toFiniteNumber(ar_wallets?.metrics[0]?.value) },
+    { name: "Node Worker", bytes: toFiniteNumber(ar_node_workers?.metrics[0]?.value) },
+    { name: "Data Discovery", bytes: toFiniteNumber(ar_data_discovery?.metrics[0]?.value) },
+    { name: "Header Sync", bytes: toFiniteNumber(ar_header_sync?.metrics[0]?.value) },
+  ]
+
   let totalStorageSize = 0,
     totalReadRate = 0,
     totalIdealReadRate = 0,
@@ -207,5 +222,7 @@ export const fetchMetrics = async (url: string): Promise<MetricsState> => {
     weaveSize,
     minerMetrics: minerMetricsWithNoDuplicates,
     coordinatedMiningData,
+    totalCowboyRequestsMetrics: totalCowboyRequests?.metrics || [],
+    processMemoryMetrics: processMemory,
   };
 };

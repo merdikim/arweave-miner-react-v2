@@ -33,4 +33,18 @@ export type MetricsState = TotalMetrics & {
   weaveSize: number | null;
   minerMetrics: PrometheusMetrics[] | undefined;
   coordinatedMiningData: { [key: string]: { [key: string]: any } };
+totalCowboyRequestsMetrics: PrometheusMetrics[];
+  processMemoryMetrics: MemoryUsage[];
+};
+
+export type RouteUsage = {
+  route: string;
+  requests: number;
+  success: number;
+  errors: number;
+};
+
+export type MemoryUsage = {
+  name: string;
+  bytes: number;
 };

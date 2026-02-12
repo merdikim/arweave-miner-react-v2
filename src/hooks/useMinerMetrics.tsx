@@ -25,6 +25,8 @@ const useMinerMetrics = () => {
           weaveSize,
           minerMetrics,
           coordinatedMiningData,
+          totalCowboyRequestsMetrics,
+          processMemoryMetrics
         } = await fetchMetrics(
           `${activeMiner?.protocol}://${activeMiner?.hostname}:${activeMiner?.port}/metrics`,
         );
@@ -40,6 +42,8 @@ const useMinerMetrics = () => {
           weaveSize,
           minerMetrics,
           coordinatedMiningData,
+          totalCowboyRequestsMetrics,
+          processMemoryMetrics
         };
       } catch (error) {
         console.log(error);
