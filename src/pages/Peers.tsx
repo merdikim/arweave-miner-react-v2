@@ -17,14 +17,6 @@ type Column = {
   label: string;
 };
 
-const columnColorMap: Record<string, string> = {
-  peer: "text-gray-700",
-  h1_in: "text-emerald-700",
-  h1_out: "text-blue-700",
-  h2_in: "text-green-700",
-  h2_out: "text-cyan-700",
-};
-
 const Peers = () => {
   const { metrics } = useMinerMetrics();
 
@@ -71,7 +63,7 @@ const Peers = () => {
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-4 py-2 h-24 text-left font-semibold ${columnColorMap[col.key] || "text-gray-700"}`}
+                  className="px-4 py-2 h-24 text-left font-semibold text-gray-700"
                 >
                   <div className="flex items-center">
                     <>
@@ -132,7 +124,7 @@ const Peers = () => {
                         )}
                       </>
                       <span
-                        className={`font-medium ${columnColorMap[col.key] || "text-gray-700"}`}
+                        className="font-medium text-gray-700"
                       >
                         {
                           //@ts-ignore
