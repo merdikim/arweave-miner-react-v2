@@ -141,6 +141,11 @@ const getCoordinatedMiningData = (data: PrometheusMetricParser[]) => {
 
 export const fetchMetrics = async (url: string): Promise<MetricsState> => {
   const data = await fetchRawMinerMetrics(url);
+//   data = data.replace(
+//   /^# HELP ([^\s]+)\s*$/gm,
+//   '# HELP $1 -'
+// );
+
   const rawParsedData = parsePrometheusTextFormat(data);
   const parsedData = Array.isArray(rawParsedData) ? rawParsedData : [];
   const miningRateData = extractMetricData(parsedData, "mining_rate");

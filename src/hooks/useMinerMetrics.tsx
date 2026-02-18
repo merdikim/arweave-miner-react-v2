@@ -10,6 +10,8 @@ const useMinerMetrics = () => {
     isFetching,
     data: metrics,
     refetch,
+    error,
+    isError
   } = useQuery({
     queryKey: ["fetch metrics", activeMiner],
     queryFn: async () => {
@@ -50,7 +52,8 @@ const useMinerMetrics = () => {
         console.error("Error fetching metrics.");
       }
     },
-    refetchInterval: 60000,
+    refetchInterval: 60000, // Refetch every 60 seconds
+    enabled: !!activeMiner // Only run the query if activeMiner is defined
   });
 
   return {
@@ -58,6 +61,8 @@ const useMinerMetrics = () => {
     metrics,
     refetch,
     isFetching,
+    error,
+    isError
   };
 };
 

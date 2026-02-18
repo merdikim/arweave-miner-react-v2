@@ -64,7 +64,7 @@ const MinerUsage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 md:p-6 shadow-sm">
           <h3 className="mb-4 flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900">
-            <Network className="h-5 w-5 text-blue-600" />
+            <Network className="h-5 w-5" />
             Top API Endpoints
           </h3>
           <div className="h-[360px]">
@@ -103,7 +103,7 @@ const MinerUsage = () => {
 
         <section className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 md:p-6 shadow-sm">
           <h3 className="mb-4 flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900">
-            <Cpu className="h-5 w-5 text-emerald-600" />
+            <Cpu className="h-5 w-5" />
             Process Memory Distribution
           </h3>
           <div className="h-[360px]">
